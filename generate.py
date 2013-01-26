@@ -53,7 +53,8 @@ def main(argv=None):
     parser.add_option('--exclude', dest='exclude', action='append', default=())
     parser.add_option('--include', dest='include', action='append', default=DEFAULT_INCLUDE)
     parser.add_option('--branch', dest='branch')
-    parser.add_option('--drop-domains', dest='drop_domains', help='Remove domains from email addresses.')
+    parser.add_option('--drop-domains', dest='drop_domains', action='store_true', default=True,
+        help='Remove domains from email addresses.')
 
     (options, args) = parser.parse_args(argv)
 
