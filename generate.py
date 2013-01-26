@@ -50,22 +50,19 @@ def main(argv=None):
     parser.add_option('--reset', dest='reset', action='store_true', default=False)
     parser.add_option('--config', dest='config_name')
     parser.add_option('--cache-name', dest='cache_name', default='.gitowners-cache')
-    parser.add_option('--exclude', dest='exclude', action='append')
-    parser.add_option('--include', dest='include', action='append')
-    parser.add_option('--alias', dest='aliases', action='append')
+    parser.add_option('--exclude', dest='exclude', action='append', default=())
+    parser.add_option('--include', dest='include', action='append', default=DEFAULT_INCLUDE)
     parser.add_option('--branch', dest='branch')
+    parser.add_option('--drop-domains', dest='drop_domains', help='Remove domains from email addresses.')
 
     (options, args) = parser.parse_args(argv)
-
-    aliases = dict(a.split('=') for a in options.aliases or [])
-    include = options.include or DEFAULT_INCLUDE
-    exclude = options.exclude or ()
 
     if not args:
         paths = ['.']
     else:
         paths = args
 
+    options.aliases = {}
     if options.config_name:
         with open(options.config_name) as fp:
             for key, value in json.loads(fp.read()).iteritems():
@@ -106,16 +103,21 @@ def main(argv=None):
         for filename, user_list in path_stats.iteritems():
             filename_lower = filename.lower()
 
-            if include and not any(fnmatch(filename_lower, p) for p in include):
+            if options.include and not any(fnmatch(filename_lower, p) for p in options.include):
                 continue
 
-            if any(fnmatch(filename_lower, p) for p in exclude):
+            if any(fnmatch(filename_lower, p) for p in options.exclude):
                 continue
 
             # coerce aliases
             for email in user_list.keys():
-                if email in aliases:
-                    new_email = aliases[email]
+                new_email = email
+                if email in options.aliases:
+                    new_email = options.aliases[email]
+                if options.drop_domains:
+                    new_email = new_email.split('@', 1)[0]
+
+                if new_email != email:
                     if new_email not in user_list:
                         user_list[new_email] = 0
                     user_list[new_email] += user_list.pop(email)
