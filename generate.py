@@ -28,8 +28,12 @@ def scrape(root='.', branch=None):
             continue
 
         sys.stdout.write('.')
-        result = subprocess.check_output(['git', 'blame', '--line-porcelain', filename],
-            cwd=root)
+        try:
+            result = subprocess.check_output(['git', 'blame', '--line-porcelain', filename],
+                cwd=root)
+        except Exception, e:
+            print 'Error:', e
+            continue
 
         for line in result.splitlines():
             if line.startswith('author-mail'):
@@ -44,7 +48,7 @@ def main(argv=None):
 
     parser = OptionParser()
     parser.add_option('--reset', dest='reset', action='store_true', default=False)
-    parser.add_option('--config-file', dest='config_name')
+    parser.add_option('--config', dest='config_name')
     parser.add_option('--cache-name', dest='cache_name', default='.gitowners-cache')
     parser.add_option('--exclude', dest='exclude', action='append')
     parser.add_option('--include', dest='include', action='append')
@@ -102,6 +106,12 @@ def main(argv=None):
         for filename, user_list in path_stats.iteritems():
             filename_lower = filename.lower()
 
+            if include and not any(fnmatch(filename_lower, p) for p in include):
+                continue
+
+            if any(fnmatch(filename_lower, p) for p in exclude):
+                continue
+
             # coerce aliases
             for email in user_list.keys():
                 if email in aliases:
@@ -109,12 +119,6 @@ def main(argv=None):
                     if new_email not in user_list:
                         user_list[new_email] = 0
                     user_list[new_email] += user_list.pop(email)
-
-            if include and not any(fnmatch(filename_lower, p) for p in include):
-                continue
-
-            if any(fnmatch(filename_lower, p) for p in exclude):
-                continue
 
             for email, lines_owned in user_list.iteritems():
                 user_stats[email] += lines_owned
