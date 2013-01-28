@@ -32,7 +32,8 @@ def scrape(root='.', branch=None):
             result = subprocess.check_output(['git', 'blame', '--line-porcelain', filename],
                 cwd=root)
         except Exception, e:
-            print 'Error:', e
+            if getattr(e, 'returncode', None) != 128:
+                print 'Error:', e
             continue
 
         for line in result.splitlines():
